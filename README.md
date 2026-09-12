@@ -34,5 +34,5 @@ docker build -t manuel-cuenca-web:demo .
 - Una réplica, límites 0,5 CPU y 256 MiB, sin puertos publicados y Traefik desactivado para este servicio.
 - Verificados HTTP 200 en `/booking` y JS, healthz `ok`, cabecera noindex.
 - Acceso público activo: https://manuelcuenca.weedex.es/ . DNS creado por el usuario hacia KVM4. Ruta aislada en `/etc/dokploy/traefik/dynamic/manuelcuenca-web.yml`, sin modificar rutas existentes. HTTPS válido y HTTP → HTTPS 308; portada y `/booking` devuelven 200 (13/09/2026).
-- GitHub: usuario confirma repositorio creado (Manuel-Cuenca); pendiente URL exacta y autenticación del agente para subir el código.
+- GitHub: repositorio https://github.com/aparrarc/Manuel-Cuenca conectado mediante clave de despliegue SSH exclusiva; rama principal `main`.
 - Navegador abre la portada pública con título correcto; captura bloqueada por timeout del navegador. Revisión visual/interactiva completa todavía pendiente.
