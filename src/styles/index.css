@@ -1,0 +1,323 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Manrope:wght@300;400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import 'tailwindcss';
+
+/* Habilitar dark mode basado en clase .dark (Tailwind v4) */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   DESIGN TOKENS — Obsidian & Gilt Theme
+   ============================================ */
+@theme {
+  /* Fondos */
+  --color-background: #131313;
+  --color-background-elevated: #1c1b1b;
+  --color-background-card: #201f1f;
+  --color-background-input: #2a2a2a;
+  --color-surface-lowest: #0e0e0e;
+  --color-surface-high: #2a2a2a;
+
+  /* Acento principal — Dorado / Gilt */
+  --color-accent: #f2c35b;
+  --color-accent-hover: #d4a843;
+  --color-accent-muted: #eec058;
+  --color-accent-dark: #795900;
+
+  --color-secondary: #ddc393;
+  --color-secondary-hover: #ceb586;
+
+  /* Texto */
+  --color-text-primary: #e5e2e1;
+  --color-text-secondary: #d2c5b1;
+  --color-text-muted: #9a8f7d;
+  --color-text-inverse: #131313;
+
+  /* Bordes */
+  --color-border: #4e4636;
+  --color-border-hover: #6b5d48;
+
+  /* Estados */
+  --color-error: #ffb4ab;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+
+  /* Tipografía */
+  --font-serif: 'Noto Serif', serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-logo-script: 'Great Vibes', cursive;
+}
+
+/* ============================================
+   DARK MODE — mantener consistencia
+   ============================================ */
+.dark {
+  --color-background: #131313;
+  --color-background-elevated: #1c1b1b;
+  --color-background-card: #201f1f;
+  --color-background-input: #2a2a2a;
+
+  --color-accent: #f2c35b;
+  --color-accent-hover: #d4a843;
+  --color-accent-muted: #eec058;
+  --color-accent-dark: #795900;
+
+  --color-secondary: #ddc393;
+  --color-secondary-hover: #ceb586;
+
+  --color-text-primary: #e5e2e1;
+  --color-text-secondary: #d2c5b1;
+  --color-text-muted: #9a8f7d;
+  --color-text-inverse: #131313;
+
+  --color-border: #4e4636;
+  --color-border-hover: #6b5d48;
+
+  --color-error: #ffb4ab;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+}
+
+/* ============================================
+   BASE
+   ============================================ */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html {
+    @apply antialiased scroll-smooth;
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-text-primary selection:bg-accent/20 selection:text-accent;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full hover:bg-border-hover transition-colors;
+  }
+}
+
+/* ============================================
+   UTILIDADES — Obsidian & Gilt
+   ============================================ */
+@layer utilities {
+  .glass {
+    backdrop-filter: blur(12px);
+    background: rgba(19, 19, 19, 0.85);
+  }
+
+  .glass-card {
+    backdrop-filter: blur(16px);
+    background: rgba(32, 31, 31, 0.80);
+    border: 1px solid rgba(78, 70, 54, 0.3);
+  }
+
+  .glass-input {
+    @apply bg-background-input border border-border focus:border-accent focus:ring-1 focus:ring-accent transition-all duration-200 outline-none;
+  }
+
+  .serif-headline {
+    font-family: var(--font-serif);
+  }
+
+  .script-logo {
+    font-family: var(--font-logo-script);
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+  }
+
+  .label-text {
+    font-family: var(--font-body);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, #f2c35b 0%, #d4a843 100%);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent to-accent-hover;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-br from-accent to-accent-hover;
+    color: var(--color-text-inverse);
+  }
+}
+
+/* ============================================
+   CALENDARIO — react-calendar
+   ============================================ */
+.react-calendar {
+  @apply w-full bg-background-card border-none font-sans p-4 rounded-2xl shadow-sm text-text-primary;
+}
+
+.react-calendar__navigation {
+  @apply flex justify-between mb-4 items-center;
+}
+
+.react-calendar__navigation button {
+  @apply min-w-[44px] bg-transparent rounded-xl p-2 hover:bg-background-elevated transition-colors text-text-primary font-medium disabled:opacity-50 disabled:hover:bg-transparent;
+}
+
+.react-calendar__navigation__label {
+  @apply font-semibold text-lg grow;
+}
+
+.react-calendar__month-view__weekdays {
+  @apply text-center text-sm font-medium text-text-muted mb-4 uppercase text-[10px] tracking-wider;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  @apply no-underline;
+}
+
+.react-calendar__month-view__days {
+  @apply gap-y-2;
+}
+
+.react-calendar__tile {
+  @apply max-w-full p-2 bg-transparent text-center rounded-xl transition-all font-medium text-sm flex items-center justify-center aspect-square text-text-primary;
+}
+
+.react-calendar__tile:disabled {
+  @apply text-text-muted/40 cursor-not-allowed bg-transparent;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  @apply bg-background-elevated text-text-primary;
+}
+
+.react-calendar__tile--now {
+  @apply bg-transparent border border-accent text-accent;
+}
+
+.react-calendar__tile--now:enabled:hover,
+.react-calendar__tile--now:enabled:focus {
+  @apply bg-accent/10 text-accent;
+}
+
+.react-calendar__tile--hasActive {
+  @apply bg-accent text-white;
+}
+
+.react-calendar__tile--hasActive:enabled:hover,
+.react-calendar__tile--hasActive:enabled:focus {
+  @apply bg-accent-hover text-white;
+}
+
+.react-calendar__tile--active {
+  @apply bg-accent text-white shadow-md scale-105;
+}
+
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  @apply bg-accent text-white;
+}
+/* ============================================
+   BRAND ACCENT OVERRIDES
+   ============================================ */
+
+/* Concesionario — azul oscuro premium + plateado/dorado */
+.theme-concesionario-premium {
+  --color-accent: #c9a227;
+  --color-accent-hover: #b08f1f;
+  --color-accent-muted: #d4b445;
+  --color-accent-dark: #7a6015;
+}
+
+/* Taller — gris + naranja mecánico */
+.theme-taller-mechanic {
+  --color-accent: #e67e22;
+  --color-accent-hover: #d35400;
+  --color-accent-muted: #eb8c44;
+  --color-accent-dark: #a04000;
+}
+
+/* SPA — verde salvia + blanco */
+.theme-spa-sage {
+  --color-accent: #87a96b;
+  --color-accent-hover: #6f8f55;
+  --color-accent-muted: #9cb880;
+  --color-accent-dark: #4a6830;
+}
+
+/* Hotel — dorado + azul marino */
+.theme-hotel-gold {
+  --color-accent: #b8860b;
+  --color-accent-hover: #9a7009;
+  --color-accent-muted: #cda020;
+  --color-accent-dark: #6b5200;
+}
+
+/* VetCare — verde + blanco */
+.theme-vetcare-green {
+  --color-accent: #2ecc71;
+  --color-accent-hover: #27ae60;
+  --color-accent-muted: #58d68d;
+  --color-accent-dark: #1e8449;
+}
+
+/* MediClick — azul médico + blanco */
+.theme-mediclick-blue {
+  --color-accent: #3498db;
+  --color-accent-hover: #2980b9;
+  --color-accent-muted: #5dade2;
+  --color-accent-dark: #21618c;
+}
+
+/* DentaLife — blanco + turquesa */
+.theme-dentalife-turquoise {
+  --color-accent: #1abc9c;
+  --color-accent-hover: #16a085;
+  --color-accent-muted: #48c9b0;
+  --color-accent-dark: #0e6655;
+}
+
+/* AutoRescate — naranja emergencias + negro */
+.theme-asistencia {
+  --color-accent: #ff6600;
+  --color-accent-hover: #e65c00;
+  --color-accent-muted: #ff8533;
+  --color-accent-dark: #cc5200;
+  --color-bg-dark: #1a1a1a;
+  --color-bg-light: #2d2d2d;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #cccccc;
+}
+
+/* ============================================
+   GESTORÍA THEME
+   ============================================ */
+.theme-gestoria {
+  --color-accent: #6366f1;
+  --color-accent-hover: #4f46e5;
+  --color-accent-muted: #818cf8;
+  --color-accent-dark: #4338ca;
+  --color-bg-dark: #13111a;
+  --color-bg-light: #1e1b2e;
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #c4c4d4;
+}
