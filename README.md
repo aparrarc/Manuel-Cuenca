@@ -33,6 +33,6 @@ docker build -t manuel-cuenca-web:demo .
 - KVM4: servicio Swarm `manuelcuenca-web`, imagen `manuelcuenca-web:demo-20260913`, release `/opt/manuelcuenca-web/releases/demo-20260913`.
 - Una réplica, límites 0,5 CPU y 256 MiB, sin puertos publicados y Traefik desactivado para este servicio.
 - Verificados HTTP 200 en `/booking` y JS, healthz `ok`, cabecera noindex.
-- Acceso público pendiente: dominio `manuelcuenca.weedex.es` sin DNS. Confirmar proveedor/zona y crear A hacia `31.97.156.146`; después configurar ruta y verificar TLS. No se ha modificado DNS ni el proxy compartido.
-- GitHub pendiente: no había identidad autenticada disponible. Crear repositorio privado `manuel-cuenca-web` y subir este repositorio cuando haya acceso.
-- Verificación visual de esta entrega independiente pendiente; los HTTP 200 no sustituyen una prueba visual/interactiva.
+- Acceso público activo: https://manuelcuenca.weedex.es/ . DNS creado por el usuario hacia KVM4. Ruta aislada en `/etc/dokploy/traefik/dynamic/manuelcuenca-web.yml`, sin modificar rutas existentes. HTTPS válido y HTTP → HTTPS 308; portada y `/booking` devuelven 200 (13/09/2026).
+- GitHub: usuario confirma repositorio creado (Manuel-Cuenca); pendiente URL exacta y autenticación del agente para subir el código.
+- Navegador abre la portada pública con título correcto; captura bloqueada por timeout del navegador. Revisión visual/interactiva completa todavía pendiente.
