@@ -46,3 +46,9 @@ Validar horarios, servicios y profesionales con el cliente; integrar identidad d
 - Lint y compilación del frontend correctos.
 - Navegador local: alta desde web, cambio a otro profesional, recuperación tras recarga, seis columnas de recepción, cancelación administrativa y lectura de la cancelación en la web. Móvil 390 px sin desbordamiento; sin errores JS.
 - Contraseña del panel pendiente de provisionar por el operador desde terminal interactivo KVM4; ver `docs/BOOKING_API.md`. Los secretos no se entregan por chat.
+
+### Despliegue verificado
+
+Imagen `manuelcuenca-web:bookings-v2-20260913`, volumen `manuelcuenca-bookings`, secretos montados solo lectura desde `/opt/manuelcuenca-web/secrets`. Contenedor saludable; aproximadamente 2,6 GiB de RAM disponible tras desplegar.
+
+Comprobado sobre HTTPS público: catálogo de seis profesionales, alta de prueba, persistencia de cita y capacidad de gestión tras reinicio, cancelación posterior y renderizado móvil/login sin errores JavaScript. La cita de prueba quedó cancelada. El panel administrativo se probó autenticado localmente; el acceso público permanece cerrado hasta provisionar contraseña. ElevenLabs continúa sin conectar.
