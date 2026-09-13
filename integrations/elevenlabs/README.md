@@ -13,3 +13,11 @@ Servidor: **KVM2, 31.97.156.146**, alojamiento temporal autorizado; no KVM4. Ser
 El preview sin número usa identidad demo aislada por conversación. No recupera citas de otra sesión. En telefonía, el número recibido identifica las citas; esto no es verificación fuerte de identidad de pacientes y no debe usarse como tal para un despliegue clínico. No hay número de teléfono conectado por este trabajo, SMS, WhatsApp ni integración Archivex.
 
 Las pruebas de demostración usan nombres ficticios. El backend comparte la misma SQLite con web y recepción, sin conexiones con P de Paula.
+
+## Verificación 2026-09-13
+
+- Agente publicado con las cinco herramientas y prompt.
+- 16 pruebas backend pasan.
+- Prueba desde el chat de vista previa de ElevenLabs: catálogo y disponibilidad, alta a las 10:00, cambio a las 11:00 y cancelación, siempre tras un turno de confirmación. Estados contrastados en SQLite; cita ficticia cancelada.
+- HTTPS y autenticación comprobados: health 200, admin/voz/legacy sin credencial 401.
+- Audio/micrófono y una llamada telefónica real no probados; no se ha conectado un número.
