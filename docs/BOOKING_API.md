@@ -26,11 +26,11 @@ Deshabilitados sin `WEBHOOK_TOKEN_FILE`. Las mutaciones requieren identidad del 
 
 Antes de la conexión: registrar herramientas con esquemas concretos, verificación del llamante, confirmación explícita antes de escribir, búsqueda segura de citas propias, gestión de errores y transferencias. Validar estos flujos con llamadas de prueba; no asumir compatibilidad directa con las herramientas actuales de P de Paula.
 
-## Operación en KVM4
+## Operación en KVM2
 
 Base SQLite persistente en volumen dedicado. No subir base ni secretos al repositorio. Una sola réplica del servicio; las transacciones serializan escrituras y evitan solapamientos dentro de cada profesional.
 
-El operador puede provisionar la contraseña desde un terminal interactivo de KVM4:
+El operador puede provisionar la contraseña desde un terminal interactivo de KVM2:
 
 ```sh
 python3 /opt/manuelcuenca-web/provision_admin.py

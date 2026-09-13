@@ -1,0 +1,69 @@
+{
+  "type": "webhook",
+  "name": "mc_confirmar_cita",
+  "description": "GUARDA la última operación preparada. Solo ejecutar DESPUÉS de leer su resumen y recibir confirmación afirmativa clara del usuario en un turno posterior. Ante timeout, reutiliza el mismo token una sola vez.",
+  "api_schema": {
+    "url": "https://manuelcuenca.weedex.es/api/voice/v1/confirm",
+    "method": "POST",
+    "path_params_schema": [],
+    "query_params_schema": [],
+    "request_body_schema": {
+      "id": "body",
+      "type": "object",
+      "description": "Datos de la operación de agenda Manuel Cuenca.",
+      "required": true,
+      "properties": [
+        {
+          "id": "confirmationToken",
+          "type": "string",
+          "description": "Copia EXACTA del confirmationToken devuelto por la última preparación que el usuario acaba de confirmar. Nunca inventar ni pronunciar.",
+          "value_type": "llm_prompt",
+          "required": true,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        }
+      ],
+      "value_type": "llm_prompt"
+    },
+    "request_headers": [
+      {
+        "type": "secret",
+        "name": "Authorization",
+        "secret_id": "m3R0jp5f8PdwmpIeTiHl"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Agent-Id",
+        "variable_name": "system__agent_id"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Conversation-Id",
+        "variable_name": "system__conversation_id"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Caller-Id",
+        "variable_name": "system__caller_id"
+      }
+    ],
+    "content_type": "application/json",
+    "auth_connection": null,
+    "response_filter": null
+  },
+  "response_timeout_secs": 20,
+  "follow_redirects": false,
+  "follow_redirects_allowed_domains": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "disable_during_tool",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "tool_error_handling_mode": "auto",
+  "response_mocks": []
+}

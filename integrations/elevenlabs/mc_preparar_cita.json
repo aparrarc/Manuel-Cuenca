@@ -1,0 +1,123 @@
+{
+  "type": "webhook",
+  "name": "mc_preparar_cita",
+  "description": "Prepara SIN GUARDAR una alta, cambio o cancelación. Después lee el resumen y pregunta si confirma. NO llames a confirmar hasta recibir un sí explícito en un turno posterior.",
+  "api_schema": {
+    "url": "https://manuelcuenca.weedex.es/api/voice/v1/prepare",
+    "method": "POST",
+    "path_params_schema": [],
+    "query_params_schema": [],
+    "request_body_schema": {
+      "id": "body",
+      "type": "object",
+      "description": "Datos de la operación de agenda Manuel Cuenca.",
+      "required": true,
+      "properties": [
+        {
+          "id": "action",
+          "type": "string",
+          "description": "Operación solicitada.",
+          "value_type": "llm_prompt",
+          "required": true,
+          "enum": [
+            "create",
+            "reschedule",
+            "cancel"
+          ],
+          "dynamic_variable": "",
+          "constant_value": ""
+        },
+        {
+          "id": "serviceId",
+          "type": "string",
+          "description": "Servicio del catálogo; obligatorio para create.",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        },
+        {
+          "id": "professionalId",
+          "type": "string",
+          "description": "Profesional del hueco elegido; obligatorio para create y reschedule.",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        },
+        {
+          "id": "start",
+          "type": "string",
+          "description": "Timestamp ISO EXACTO devuelto por disponibilidad; obligatorio para create y reschedule.",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        },
+        {
+          "id": "customerName",
+          "type": "string",
+          "description": "Nombre ficticio de la persona para la demo; obligatorio para create.",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        },
+        {
+          "id": "bookingId",
+          "type": "string",
+          "description": "ID EXACTO obtenido de mc_mis_citas; obligatorio para reschedule y cancel.",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null,
+          "dynamic_variable": "",
+          "constant_value": ""
+        }
+      ],
+      "value_type": "llm_prompt"
+    },
+    "request_headers": [
+      {
+        "type": "secret",
+        "name": "Authorization",
+        "secret_id": "m3R0jp5f8PdwmpIeTiHl"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Agent-Id",
+        "variable_name": "system__agent_id"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Conversation-Id",
+        "variable_name": "system__conversation_id"
+      },
+      {
+        "type": "dynamic_variable",
+        "name": "X-ElevenLabs-Caller-Id",
+        "variable_name": "system__caller_id"
+      }
+    ],
+    "content_type": "application/json",
+    "auth_connection": null,
+    "response_filter": null
+  },
+  "response_timeout_secs": 20,
+  "follow_redirects": false,
+  "follow_redirects_allowed_domains": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "tool_error_handling_mode": "auto",
+  "response_mocks": []
+}

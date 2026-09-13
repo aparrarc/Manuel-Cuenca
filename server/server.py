@@ -163,7 +163,11 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,KeyError) as e: self.error(400,str(e))
         except Exception: self.error(500,"internal server error")
     def do_POST(self):
-        try: self.mutate("POST")
+        try:
+            try: from . import voice
+            except ImportError: import voice
+            if voice.handle(self): return
+            self.mutate("POST")
         except ValueError as e: self.error(400,str(e))
         except Exception: self.error(500,"internal server error")
     def do_PATCH(self):

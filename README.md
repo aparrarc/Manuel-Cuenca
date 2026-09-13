@@ -29,7 +29,7 @@ python -m unittest -v server.test_server
 
 ## Despliegue
 
-KVM4, servicio dedicado `manuelcuenca-web`, una réplica, 0,5 CPU, 256 MiB, puerto interno 8080 en `dokploy-network`. Volumen persistente para la base de datos, sin compartir información con otros clientes. Mantener una sola réplica para esta implementación SQLite.
+KVM2, servicio dedicado `manuelcuenca-web`, una réplica, 0,5 CPU, 256 MiB, puerto interno 8080 en `dokploy-network`. Volumen persistente para la base de datos, sin compartir información con otros clientes. Mantener una sola réplica para esta implementación SQLite.
 
 Ruta Traefik aislada: `/etc/dokploy/traefik/dynamic/manuelcuenca-web.yml`. No sustituir configuraciones compartidas. HTTPS y noindex activos en https://manuelcuenca.weedex.es/ . Panel: `/admin`.
 
@@ -45,7 +45,7 @@ Validar horarios, servicios y profesionales con el cliente; integrar identidad d
 - 2 pruebas de visualización horaria Madrid y cambio de hora.
 - Lint y compilación del frontend correctos.
 - Navegador local: alta desde web, cambio a otro profesional, recuperación tras recarga, seis columnas de recepción, cancelación administrativa y lectura de la cancelación en la web. Móvil 390 px sin desbordamiento; sin errores JS.
-- Contraseña del panel pendiente de provisionar por el operador desde terminal interactivo KVM4; ver `docs/BOOKING_API.md`. Los secretos no se entregan por chat.
+- Contraseña del panel pendiente de provisionar por el operador desde terminal interactivo KVM2; ver `docs/BOOKING_API.md`. Los secretos no se entregan por chat.
 
 ### Despliegue verificado
 
