@@ -9,7 +9,7 @@ export default function ManuelCuencaBooking() {
     const [catalog, setCatalog] = useState<Catalog>();
     const [department, setDepartment] = useState(''); const [serviceId, setServiceId] = useState(''); const [professional, setProfessional] = useState('');
     const [date, setDate] = useState(madridDate()); const [slots, setSlots] = useState<Slot[]>([]); const [selected, setSelected] = useState<Slot>();
-    const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [error, setError] = useState('');
+    const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [whatsappConsent, setWhatsappConsent] = useState(false); const [whatsappStatus, setWhatsappStatus] = useState<string>(); const [error, setError] = useState('');
     const [loading, setLoading] = useState(false); const [busy, setBusy] = useState(false); const [revision, setRevision] = useState(0);
     const [reservations, setReservations] = useState<{ booking: Booking; token: string }[]>([]);
     const [confirmed, setConfirmed] = useState<string>();
@@ -31,11 +31,12 @@ export default function ManuelCuencaBooking() {
     const submit = async (event: React.FormEvent) => {
         event.preventDefault(); if (!selected || busy) return;
         setBusy(true); setError('');
-        const payload = { serviceId, professionalId: selected.professionalId, start: selected.start, customerName: name.trim(), phone: phone.trim() };
+        const payload = { serviceId, professionalId: selected.professionalId, start: selected.start, customerName: name.trim(), phone: phone.trim(), whatsappConsent };
         const fingerprint = JSON.stringify(payload);
         if (retry.current?.fingerprint !== fingerprint) retry.current = { fingerprint, key: crypto.randomUUID() };
         try {
             const result = await api.createBooking({ ...payload, idempotencyKey: retry.current.key });
+            setWhatsappStatus(result.whatsapp?.status);
             saveReservation({ id: result.booking.id, token: result.managementToken });
             setReservations(items => [{ booking: result.booking, token: result.managementToken }, ...items.filter(i => i.booking.id !== result.booking.id)]);
             setConfirmed(result.booking.id); setSelected(undefined); setRevision(x => x + 1);
@@ -48,9 +49,9 @@ export default function ManuelCuencaBooking() {
         <header className="border-b bg-white"><div className="mx-auto flex min-h-20 max-w-6xl items-center justify-between px-5"><Link to="/" className="font-bold">← Volver a la web</Link><span className="text-sm font-bold">Manuel Cuenca · Demo</span></div></header>
         <main className="mx-auto max-w-6xl px-5 py-10">
             <h1 className="text-3xl font-black sm:text-5xl">Reserva tu cita</h1>
-            <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">Agenda de demostración: utiliza nombre y teléfono ficticios. Las reservas se guardan, pero no son citas clínicas reales ni se envían avisos. Horarios y tratamientos pendientes de validación con el centro.</p>
+            <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">Agenda de demostración: las reservas se guardan, pero no son citas clínicas reales. Si confirmas el consentimiento, la confirmación por WhatsApp se prepara cuando el servicio está habilitado. Horarios y tratamientos pendientes de validación con el centro.</p>
             {confirmation && catalog ? <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-                <h2 className="text-2xl font-black">Cita de demostración guardada</h2><p className="mt-3">{appointmentDate(confirmation.booking.start)} · {catalog.professionals.find(p => p.id === confirmation.booking.professionalId)?.name}</p><p>{confirmation.booking.customerName}</p>
+                <h2 className="text-2xl font-black">Cita de demostración guardada</h2><p className="mt-3">{appointmentDate(confirmation.booking.start)} · {catalog.professionals.find(p => p.id === confirmation.booking.professionalId)?.name}</p><p>{confirmation.booking.customerName}</p>{whatsappStatus && <p className="mt-3 text-sm">WhatsApp: {['queued','pending','sending'].includes(whatsappStatus) ? 'confirmación solicitada; puede tardar unos segundos' : whatsappStatus === 'accepted' ? 'mensaje aceptado por WhatsApp para envío' : ['unknown','failed'].includes(whatsappStatus) ? 'no se ha podido verificar el envío; tu cita sigue guardada' : 'no solicitado'}</p>}
                 <BookingManager booking={confirmation.booking} token={confirmation.token} catalog={catalog} onChanged={changed} />
                 <button onClick={() => { setConfirmed(undefined); setRevision(x => x + 1); }} className="mt-5 min-h-12 rounded-full bg-blue-600 px-6 font-bold text-white">Reservar otra cita</button>
             </section> : <form onSubmit={submit} className="mt-8">
@@ -63,7 +64,7 @@ export default function ManuelCuencaBooking() {
                     <section className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">2. Fecha y hora · Málaga</h2><label className="mt-4 block max-w-sm font-bold">Fecha<input required type="date" min={madridDate()} className={inputClass} value={date} onChange={e => { setDate(e.target.value); setSelected(undefined); setError(''); }} /></label>
                         {loading ? <p className="mt-5">Consultando disponibilidad…</p> : slots.length && catalog ? <SlotButtons slots={slots} selected={selected} onSelect={setSelected} catalog={catalog} /> : <p className="mt-5 text-slate-500">{serviceId ? 'No hay huecos. Prueba otra fecha o profesional.' : 'Selecciona primero el servicio.'}</p>}
                     </section>
-                    <section className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">3. Datos ficticios para la demo</h2><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="font-bold">Nombre<input required minLength={2} maxLength={120} className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="Persona Demo" /></label><label className="font-bold">Teléfono<input required minLength={3} maxLength={40} type="tel" className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} placeholder="600000000" /></label></div></section>
+                    <section className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">3. Datos para la demo</h2><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="font-bold">Nombre<input required minLength={2} maxLength={120} className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="Persona Demo" /></label><label className="font-bold">Teléfono móvil<input required minLength={3} maxLength={40} type="tel" className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} placeholder="600000000" /></label></div>{catalog?.whatsappEnabled && <label className="mt-4 flex min-h-11 items-center gap-3 text-sm"><input className="h-5 w-5" type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} /><span>Quiero recibir desde Weedex la confirmación de prueba por WhatsApp en este móvil.</span></label>}</section>
                     <button type="submit" disabled={!selected || busy} className="min-h-14 rounded-full bg-[#2f85e8] px-8 font-black text-white disabled:opacity-40">{busy ? 'Guardando…' : 'Confirmar cita'}</button>
                 </fieldset>
                 {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-red-700">{error}</p>}

@@ -22,3 +22,13 @@ Pendiente: una reserva nueva con número controlado confirmado por usuario; veri
 Outbox: una entrada por operación confirmada; reintentos de confirmación no duplican mensajes. HTTP 2xx con accepted/messageId significa aceptación Meta, NO entrega al móvil. Timeout/unverified es unknown, sin reintento automático. Worker solo consume cuando hay URL y credencial configuradas. No hay notificaciones de modificación/cancelación todavía. Revisar vigencia de eventos pendientes antes de habilitar.
 
 Prueba de preflight Meta mcMetaRead20260913 quedó inactiva; solo GET a plantillas, sin envíos.
+
+## Corrección 20h — web y ElevenLabs
+Se diagnosticaron las reservas reportadas por usuario: web sin outbox por ausencia de integración en create público, y voz con whatsapp.status=skipped por falta de móvil de preview. No eran rechazos Meta.
+
+Cambios whatsapp-v2-20260913:
+- Alta web encola en la misma transacción solo con casilla WhatsApp aceptada, normaliza móvil español y deduplica reintentos. UI muestra solicitud, no entrega.
+- Preview voz con WhatsApp activo exige móvil+aceptación o rechazo explícito whatsappConsent=false; prepare y confirm bloquean omisión silenciosa. Ownership sigue siendo la conversación.
+- Prompt prioritario y herramienta actualizados/publicados.
+- 26 tests backend, lint y build correctos. Prueba real navegador contra servidor local aislado guardó reserva y exactamente un evento pending, sin envío externo.
+- No se reenviaron las dos reservas previas. Prueba externa de dos mensajes solicitada a Antonio; no realizar sin su respuesta.

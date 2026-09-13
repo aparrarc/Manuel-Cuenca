@@ -14,6 +14,7 @@ def init(c):
 def _phone(v):
     if not isinstance(v,str) or v.startswith('demo:'): return None
     v=v.strip()
+    if re.fullmatch(r'[6789][0-9]{8}',v): v='+34'+v
     if not re.fullmatch(r'\+?[1-9][0-9]{7,14}',v): return None
     return '+'+v.lstrip('+')
 

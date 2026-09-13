@@ -1,7 +1,7 @@
 {
   "type": "webhook",
   "name": "mc_preparar_cita",
-  "description": "Prepara SIN GUARDAR una alta, cambio o cancelación. Después lee el resumen y pregunta si confirma. NO llames a confirmar hasta recibir un sí explícito en un turno posterior.",
+  "description": "Prepara una cita SIN guardarla. Antes de crear en preview con WhatsApp activo debes obtener móvil y aceptación; pasa whatsappPhone y whatsappConsent=true, o false únicamente si el usuario rechaza expresamente WhatsApp. Lee el resumen y espera confirmación antes de usar mc_confirmar_cita.",
   "api_schema": {
     "url": "https://manuelcuenca.weedex.es/api/voice/v1/prepare",
     "method": "POST",
@@ -90,7 +90,7 @@
         {
           "id": "whatsappConsent",
           "type": "boolean",
-          "description": "Solo true cuando el usuario acepta la confirmación WhatsApp al móvil indicado; omitir si no hay whatsappPhone.",
+          "description": "Solo create: true con móvil y aceptación del usuario; false SOLO si rechaza expresamente el WhatsApp. En preview con WhatsApp activo no puedes omitir la decisión.",
           "dynamic_variable": "",
           "constant_value": "",
           "value_type": "llm_prompt",

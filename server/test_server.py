@@ -139,4 +139,17 @@ class BookingHTTPTests(unittest.TestCase):
         self.assertIn('javascript',self.last_headers['Content-Type'])
         self.assertIn('noindex',self.last_headers.get('X-Robots-Tag',''))
 
+    def test_web_whatsapp_transaction_and_idempotency(self):
+        body=self.body(phone='600123456',whatsappConsent=True)
+        code,x=self.req('POST','/api/bookings',body);self.assertEqual(code,201);self.assertEqual(x['whatsapp']['status'],'queued')
+        code,y=self.req('POST','/api/bookings',body);self.assertEqual(code,200);self.assertEqual(x['booking']['id'],y['booking']['id'])
+        c=api.conn();rows=c.execute('SELECT recipient_phone FROM notification_outbox').fetchall();c.close();self.assertEqual(len(rows),1);self.assertEqual(rows[0][0],'+34600123456')
+        body['whatsappConsent']=False;self.assertEqual(self.req('POST','/api/bookings',body)[0],409)
+
+    def test_web_bad_recipient_rolls_back_booking(self):
+        body=self.body(phone='abc',whatsappConsent=True)
+        self.assertEqual(self.req('POST','/api/bookings',body)[0],400)
+        c=api.conn();self.assertEqual(c.execute('SELECT count(*) FROM bookings').fetchone()[0],0);c.close()
+        body['whatsappConsent']=False;self.assertEqual(self.req('POST','/api/bookings',body)[0],201)
+
 if __name__=='__main__': unittest.main()

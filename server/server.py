@@ -69,7 +69,8 @@ def management_token(booking_id):
 def catalog():
     return {"professionals":[{"id":i,"name":n,"role":r} for i,n,r in PROS],
       "services":[{"id":i,"name":n,"department":d,"duration":du,"professionalIds":ps.split(',')} for i,n,d,du,ps in SERVICES],
-      "departments":[{"id":i,"name":n,"enabled":bool(e)} for i,n,e in DEPTS], "demo":True}
+      "departments":[{"id":i,"name":n,"enabled":bool(e)} for i,n,e in DEPTS], "demo":True,
+      "whatsappEnabled": bool(os.environ.get('NOTIFICATION_WEBHOOK_URL','').startswith('https://') and os.environ.get('NOTIFICATION_TOKEN_FILE'))}
 def now_local(): return datetime.now(TZ)
 def parse_start(v):
     if not isinstance(v,str): raise ValueError("start must be ISO datetime")
@@ -94,6 +95,7 @@ def validate_person(body):
     if not isinstance(n,str) or not 2<=len(n.strip())<=120: raise ValueError("invalid customerName")
     if not isinstance(p,str) or not 3<=len(p.strip())<=40: raise ValueError("invalid phone")
     if k is not None and (not isinstance(k,str) or not 1<=len(k)<=128): raise ValueError("invalid idempotencyKey")
+    if body.get('whatsappConsent') is not None and not isinstance(body['whatsappConsent'],bool): raise ValueError("invalid whatsappConsent")
 def overlap(c,pid,s,e,exclude=None):
     q="SELECT * FROM bookings WHERE professional_id=? AND status='confirmed' AND start < ? AND end > ?"; args=[pid,iso(e),iso(s)]
     if exclude: q += " AND id != ?"; args.append(exclude)
@@ -272,16 +274,29 @@ class Handler(BaseHTTPRequestHandler):
     def create(self,b,status):
         try: validate_person(b); sid=b["serviceId"]; pid=b["professionalId"]; s=parse_start(b["start"]); end=rules(sid,pid,s)
         except (KeyError,ValueError) as e: return self.error(400,str(e))
-        payload=json.dumps({k:b.get(k) for k in ('serviceId','professionalId','start','customerName','phone')},sort_keys=True); idem=b.get('idempotencyKey'); c=conn()
+        payload=json.dumps({k:b.get(k) for k in ('serviceId','professionalId','start','customerName','phone','whatsappConsent')},sort_keys=True); idem=b.get('idempotencyKey'); c=conn()
         c.execute("BEGIN IMMEDIATE")
         if idem:
             old=c.execute("SELECT * FROM bookings WHERE idempotency_key=?",(idem,)).fetchone()
             if old:
                 c.rollback(); c.close()
                 if old['idempotency_payload']!=payload:return self.error(409,"idempotency payload mismatch")
-                return self.send_json(200,{"booking":booking_json(old),"managementToken":management_token(old["id"])})
+                try:
+                    nc=conn()
+                    try: wr=nc.execute("SELECT status FROM notification_outbox WHERE booking_id=? ORDER BY rowid DESC LIMIT 1",(old['id'],)).fetchone()
+                    finally: nc.close()
+                    ws={'status':wr['status']} if wr else {'status':'skipped','reason':'consent_not_given'}
+                except Exception: ws={'status':'skipped','reason':'consent_not_given'}
+                return self.send_json(200,{"booking":booking_json(old),"managementToken":management_token(old["id"]),"whatsapp":ws})
         if overlap(c,pid,s,end): c.rollback(); c.close(); return self.error(409,"time slot unavailable")
-        bid=uuid.uuid4().hex; token=management_token(bid); c.execute("INSERT INTO bookings (id,service_id,professional_id,start,end,customer_name,phone,status,management_token_hash,management_token,idempotency_key,idempotency_payload,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(bid,sid,pid,iso(s),iso(end),b['customerName'].strip(),b['phone'].strip(),'confirmed',hashlib.sha256(token.encode()).hexdigest(),'',idem,payload,datetime.now(timezone.utc).isoformat())); c.commit(); r=c.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone(); c.close(); return self.send_json(status,{"booking":booking_json(r),"managementToken":token})
+        bid=uuid.uuid4().hex; token=management_token(bid); c.execute("INSERT INTO bookings (id,service_id,professional_id,start,end,customer_name,phone,status,management_token_hash,management_token,idempotency_key,idempotency_payload,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(bid,sid,pid,iso(s),iso(end),b['customerName'].strip(),b['phone'].strip(),'confirmed',hashlib.sha256(token.encode()).hexdigest(),'',idem,payload,datetime.now(timezone.utc).isoformat()))
+        whatsapp={'status':'skipped','reason':'consent_not_given'}
+        if b.get('whatsappConsent') is True:
+            from . import notifications
+            recipient=notifications._phone(b['phone'])
+            if not recipient: c.rollback(); c.close(); return self.error(400,'valid WhatsApp mobile required')
+            whatsapp=notifications.enqueue(c,uuid.uuid4().hex,dict(booking_json(c.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone()),phone=recipient))
+        c.commit(); r=c.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone(); c.close(); return self.send_json(status,{"booking":booking_json(r),"managementToken":token,"whatsapp":whatsapp})
     def tool_row(self,b,c):
         bid=b.get("bookingId") or b.get("id")
         if not isinstance(bid,str): raise ValueError("bookingId required")

@@ -25,6 +25,13 @@ def _whatsapp(v):
     if re.fullmatch(r'\+[1-9]\d{7,14}',v): return v[1:]
     if re.fullmatch(r'[6789]\d{8}',v): return '34'+v
     raise ValueError('invalid whatsappPhone')
+def _notification_decision(p,caller):
+    enabled=bool(os.environ.get('NOTIFICATION_WEBHOOK_URL') and os.environ.get('NOTIFICATION_TOKEN_FILE'))
+    if 'whatsappConsent' in p and not isinstance(p['whatsappConsent'],bool):
+        raise ValueError('whatsappConsent must be boolean')
+    if enabled and caller.startswith('demo:') and not p.get('whatsappPhone') and p.get('whatsappConsent') is not False:
+        raise ValueError('whatsapp_recipient_required: ask the user for a WhatsApp mobile and consent before confirming; use whatsappConsent=false only if the user explicitly declines WhatsApp')
+
 def _auth(h):
     p=os.environ.get('VOICE_TOKEN_FILE',''); a=h.headers.get('Authorization','')
     if not p or not a.startswith('Bearer '): return False
@@ -70,6 +77,7 @@ def handle(h):
         c=_db(); p=dict(b); p['phone']=caller
         try:
             if action=='create':
+                _notification_decision(p,caller)
                 server.validate_person(p); s=server.parse_start(p['start']); e=server.rules(p['serviceId'],p['professionalId'],s); sid, pid=p['serviceId'],p['professionalId']
                 if server.overlap(c,pid,s,e): raise ValueError('time slot unavailable')
                 if 'whatsappPhone' in p:
@@ -96,12 +104,14 @@ def handle(h):
         if op['consumed']:
             result=json.loads(op['consumed']); c.commit(); c.close(); h.send_json(200,result); return True
         p=json.loads(op['payload']); p['phone']=caller; action=op['action']
-        try: result=_apply(c,caller,action,p,op['id'])
+        try:
+            if action=='create': _notification_decision(p,caller)
+            result=_apply(c,caller,action,p,op['id'])
         except (ValueError,KeyError) as e: c.rollback(); c.close(); h.error(409,str(e)); return True
         if action=='create':
             from . import notifications
             target=dict(result['booking']); target['phone']=p.get('whatsappPhone') if p.get('whatsappPhone') else caller
-            result['whatsapp']=notifications.enqueue(c,op['id'],target)
+            result['whatsapp']={'status':'skipped','reason':'user_declined'} if p.get('whatsappConsent') is False else notifications.enqueue(c,op['id'],target)
         c.execute('UPDATE voice_operations SET consumed=? WHERE id=?',(json.dumps(result),op['id'])); c.commit(); c.close(); h.send_json(200,result); return True
     h.error(404,'not found'); return True
 def _apply(c,caller,action,p,opid):

@@ -78,3 +78,21 @@ class VoiceTests(unittest.TestCase):
         self.assertTrue(y['booking']['phone'].startswith('demo:'))
         c=conn(); row=c.execute('SELECT recipient_phone FROM notification_outbox WHERE booking_id=?',(y['booking']['id'],)).fetchone();c.close();self.assertEqual(row[0],'+34600123456')
         self.assertEqual(self.req('/api/voice/v1/upcoming',{},caller='+34600123456',conversation='other-person')[1]['bookings'],[])
+
+    def test_enabled_preview_requires_whatsapp_decision(self):
+        from unittest.mock import patch
+        b={'action':'create','serviceId':'physio','professionalId':'p4','start':self.start('16:00'),'customerName':'Decision Demo'}
+        with patch.dict(os.environ,{'NOTIFICATION_WEBHOOK_URL':'https://notify.invalid','NOTIFICATION_TOKEN_FILE':'/missing-test-file'}):
+            status,x=self.req('/api/voice/v1/prepare',b,caller='',conversation='decision-test');self.assertEqual(status,409);self.assertIn('whatsapp_recipient_required',x['error']['message'])
+            b['whatsappConsent']=False
+            status,x=self.req('/api/voice/v1/prepare',b,caller='',conversation='decision-test');self.assertEqual(status,200)
+            status,y=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},caller='',conversation='decision-test');self.assertEqual(status,200);self.assertEqual(y['whatsapp']['reason'],'user_declined')
+
+    def test_old_preparation_cannot_bypass_required_phone(self):
+        from unittest.mock import patch
+        b={'action':'create','serviceId':'physio','professionalId':'p4','start':self.start('17:00'),'customerName':'Old Demo'}
+        with patch.dict(os.environ,{'NOTIFICATION_WEBHOOK_URL':'','NOTIFICATION_TOKEN_FILE':''}):
+            status,x=self.req('/api/voice/v1/prepare',b,caller='',conversation='old-decision');self.assertEqual(status,200)
+        with patch.dict(os.environ,{'NOTIFICATION_WEBHOOK_URL':'https://notify.invalid','NOTIFICATION_TOKEN_FILE':'/missing-test-file'}):
+            status,y=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},caller='',conversation='old-decision');self.assertEqual(status,409)
+        self.assertEqual(self.req('/api/voice/v1/upcoming',{},caller='',conversation='old-decision')[1]['bookings'],[])
