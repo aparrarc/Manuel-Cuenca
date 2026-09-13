@@ -32,3 +32,9 @@ Cambios whatsapp-v2-20260913:
 - Prompt prioritario y herramienta actualizados/publicados.
 - 26 tests backend, lint y build correctos. Prueba real navegador contra servidor local aislado guardó reserva y exactamente un evento pending, sin envío externo.
 - No se reenviaron las dos reservas previas. Prueba externa de dos mensajes solicitada a Antonio; no realizar sin su respuesta.
+
+Validación adicional:
+- Antonio confirmó recepción del primer WhatsApp (prueba 19:22). Las dos reservas posteriores web/voz no generaron notificación; corregido arriba.
+- Conversación nueva ElevenLabs tras fix: pidió el móvil antes de preparar, sin crear cita ni enviar mensaje.
+- Se detectó cálculo incorrecto del día de la semana en el modelo: catálogo ahora devuelve calendarDays (fecha y día español) y prompt exige copiar esa relación. Release final whatsapp-v3-20260913.
+- Prueba externa de ambos recorridos todavía pendiente de autorización para dos mensajes; no se reutiliza la autorización anterior de un único WhatsApp.

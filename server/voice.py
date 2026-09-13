@@ -50,7 +50,7 @@ def handle(h):
     try: b=h.body()
     except ValueError as e: h.error(400,str(e)); return True
     if u.endswith('/catalog'):
-        x=server.catalog(); n=server.now_local(); x.update({'timezone':'Europe/Madrid','now':n.isoformat(timespec='minutes'),'date':n.date().isoformat(),'mode':'preview' if caller.startswith('demo:') else 'voice','callerPhoneAvailable':not caller.startswith('demo:'),'whatsappEnabled':bool(os.environ.get('NOTIFICATION_WEBHOOK_URL') and os.environ.get('NOTIFICATION_TOKEN_FILE'))}); h.send_json(200,x); return True
+        x=server.catalog(); n=server.now_local(); weekdays=['lunes','martes','miércoles','jueves','viernes','sábado','domingo']; x['calendarDays']=[{'date':(n+timedelta(days=i)).date().isoformat(),'weekday':weekdays[(n+timedelta(days=i)).weekday()]} for i in range(15)]; x.update({'timezone':'Europe/Madrid','now':n.isoformat(timespec='minutes'),'date':n.date().isoformat(),'mode':'preview' if caller.startswith('demo:') else 'voice','callerPhoneAvailable':not caller.startswith('demo:'),'whatsappEnabled':bool(os.environ.get('NOTIFICATION_WEBHOOK_URL') and os.environ.get('NOTIFICATION_TOKEN_FILE'))}); h.send_json(200,x); return True
     if u.endswith('/availability'):
         sid=b.get('serviceId'); day=b.get('date'); pid=b.get('professionalId'); svc=next((x for x in server.SERVICES if x[0]==sid),None)
         try:
