@@ -35,6 +35,7 @@ def conn():
     return c
 def init_db(c=None):
     own = c is None; c = c or conn()
+    token_key()
     c.executescript("""CREATE TABLE IF NOT EXISTS bookings(
       id TEXT PRIMARY KEY, service_id TEXT NOT NULL, professional_id TEXT NOT NULL,
       start TEXT NOT NULL, end TEXT NOT NULL, customer_name TEXT NOT NULL, phone TEXT NOT NULL,
@@ -46,6 +47,24 @@ def init_db(c=None):
     cols={r[1] for r in c.execute("PRAGMA table_info(bookings)")}
     if "management_token" not in cols: c.execute("ALTER TABLE bookings ADD COLUMN management_token TEXT NOT NULL DEFAULT ''")
     if own: c.commit(); c.close()
+
+
+def token_key():
+    path = Path(os.environ.get('MANAGEMENT_KEY_FILE', str(Path(db_path()).parent / 'management.key')))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        pass
+    else:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(secrets.token_bytes(32))
+    key = path.read_bytes()
+    if len(key) != 32: raise RuntimeError('management key unavailable')
+    return key
+
+def management_token(booking_id):
+    return hmac.new(token_key(), booking_id.encode(), hashlib.sha256).hexdigest()
 
 def catalog():
     return {"professionals":[{"id":i,"name":n,"role":r} for i,n,r in PROS],
@@ -256,9 +275,9 @@ class Handler(BaseHTTPRequestHandler):
             if old:
                 c.rollback(); c.close()
                 if old['idempotency_payload']!=payload:return self.error(409,"idempotency payload mismatch")
-                return self.send_json(200,{"booking":booking_json(old),"managementToken":old["management_token"]})
+                return self.send_json(200,{"booking":booking_json(old),"managementToken":management_token(old["id"])})
         if overlap(c,pid,s,end): c.rollback(); c.close(); return self.error(409,"time slot unavailable")
-        bid=uuid.uuid4().hex; token=secrets.token_urlsafe(24); c.execute("INSERT INTO bookings (id,service_id,professional_id,start,end,customer_name,phone,status,management_token_hash,management_token,idempotency_key,idempotency_payload,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(bid,sid,pid,iso(s),iso(end),b['customerName'].strip(),b['phone'].strip(),'confirmed',hashlib.sha256(token.encode()).hexdigest(),token,idem,payload,datetime.now(timezone.utc).isoformat())); c.commit(); r=c.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone(); c.close(); return self.send_json(status,{"booking":booking_json(r),"managementToken":token})
+        bid=uuid.uuid4().hex; token=management_token(bid); c.execute("INSERT INTO bookings (id,service_id,professional_id,start,end,customer_name,phone,status,management_token_hash,management_token,idempotency_key,idempotency_payload,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(bid,sid,pid,iso(s),iso(end),b['customerName'].strip(),b['phone'].strip(),'confirmed',hashlib.sha256(token.encode()).hexdigest(),'',idem,payload,datetime.now(timezone.utc).isoformat())); c.commit(); r=c.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone(); c.close(); return self.send_json(status,{"booking":booking_json(r),"managementToken":token})
     def tool_row(self,b,c):
         bid=b.get("bookingId") or b.get("id")
         if not isinstance(bid,str): raise ValueError("bookingId required")

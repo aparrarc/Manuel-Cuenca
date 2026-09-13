@@ -11,7 +11,7 @@ Todos los endpoints son independientes de P de Paula y Archivex. Las fechas ISO 
 - PATCH `/api/bookings/:id`: `start`, `professionalId`, `idempotencyKey`.
 - DELETE `/api/bookings/:id`: cancelar y liberar disponibilidad.
 
-La creación devuelve una capacidad privada de gestión, conservada exclusivamente en sessionStorage. No ponerla en URLs ni registros. GET/PATCH/DELETE requieren `X-Management-Token` o sesión administrativa. La clave de idempotencia debe mantenerse en los reintentos de una misma operación; un cambio de contenido exige otra clave. Un conflicto responde 409; el frontend debe consultar de nuevo la disponibilidad.
+La creación devuelve una capacidad privada de gestión, conservada en sessionStorage del navegador. El servidor almacena su hash y la deriva mediante una clave persistente separada de SQLite para poder responder a reintentos sin guardar capacidades en claro. No ponerla en URLs ni registros. GET/PATCH/DELETE requieren `X-Management-Token` o sesión administrativa. La clave de idempotencia debe mantenerse en los reintentos de una misma operación; un cambio de contenido exige otra clave. Un conflicto responde 409; el frontend debe consultar de nuevo la disponibilidad.
 
 - POST `/api/admin/login`: contraseña por HTTPS, sesión HttpOnly/Secure/SameSite=Strict.
 - POST `/api/admin/logout`: revoca sesión.
@@ -39,3 +39,5 @@ python3 /opt/manuelcuenca-web/provision_admin.py
 El programa solicita la contraseña con entrada oculta, no como argumento ni en chat. La ruta `/opt/manuelcuenca-web/secrets` se monta solo lectura dentro del contenedor. El panel permanece cerrado si no existe contraseña.
 
 Para volver al frontend anterior, restaurar la imagen previa mediante actualización de servicio; no eliminar el volumen. Antes de producción deberán incorporarse política de retención, copias automáticas probadas y controles operativos apropiados para datos reales.
+
+La copia de seguridad debe incluir también `management.key` bajo control de acceso estricto; no es contenido público ni parte del repositorio.
