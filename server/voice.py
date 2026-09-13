@@ -87,6 +87,9 @@ def handle(h):
         p=json.loads(op['payload']); p['phone']=caller; action=op['action']
         try: result=_apply(c,caller,action,p,op['id'])
         except (ValueError,KeyError) as e: c.rollback(); c.close(); h.error(409,str(e)); return True
+        if action=='create':
+            from . import notifications
+            result['whatsapp']=notifications.enqueue(c,op['id'],result['booking'])
         c.execute('UPDATE voice_operations SET consumed=? WHERE id=?',(json.dumps(result),op['id'])); c.commit(); c.close(); h.send_json(200,result); return True
     h.error(404,'not found'); return True
 def _apply(c,caller,action,p,opid):
