@@ -21,3 +21,6 @@ Las pruebas de demostración usan nombres ficticios. El backend comparte la mism
 - Prueba desde el chat de vista previa de ElevenLabs: catálogo y disponibilidad, alta a las 10:00, cambio a las 11:00 y cancelación, siempre tras un turno de confirmación. Estados contrastados en SQLite; cita ficticia cancelada.
 - HTTPS y autenticación comprobados: health 200, admin/voz/legacy sin credencial 401.
 - Audio/micrófono y una llamada telefónica real no probados; no se ha conectado un número.
+
+## WhatsApp 2026-09-13 19h
+Activado backend whatsapp-v1-20260913, flujo n8n mcWhatsappConfirm20260913 publicado sin reinicio, prompt y preparar actualizados. API devuelve whatsappEnabled. Pendiente prueba real a un móvil indicado por Antonio. No afirmar entrega hasta verificarla. Véase docs/WHATSAPP_PENDING.md.
