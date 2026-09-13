@@ -45,6 +45,14 @@ class VoiceTests(unittest.TestCase):
         c=conn(); c.execute("UPDATE bookings SET phone='600123126' WHERE id=?",(bid,)); c.commit(); c.close()
         _,x=self.req('/api/voice/v1/prepare',{'action':'reschedule','bookingId':bid,'start':self.start('13:00')},caller=caller,conversation='move2'); st,moved=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},caller=caller,conversation='move2'); self.assertEqual(st,200); self.assertIn('13:00',moved['booking']['start'])
         _,x=self.req('/api/voice/v1/prepare',{'action':'cancel','bookingId':bid},caller=caller,conversation='move3'); st,cancelled=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},caller=caller,conversation='move3'); self.assertEqual(st,200); self.assertEqual(cancelled['booking']['status'],'cancelled')
+    def test_manual_whatsapp_requires_consent_and_is_separate(self):
+        b={'action':'create','serviceId':'physio','professionalId':'p4','start':self.start('11:00'),'customerName':'WhatsApp','whatsappPhone':'683498975'}
+        self.assertEqual(self.req('/api/voice/v1/prepare',b,conversation='wa-no-consent')[0],409)
+        b['whatsappConsent']=True; st,x=self.req('/api/voice/v1/prepare',b,conversation='wa-ok'); self.assertEqual(st,200); self.assertEqual(x['summary']['whatsappPhone'],'+34683498975')
+        st,y=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},conversation='wa-ok'); self.assertEqual(st,200); self.assertEqual(y['booking']['phone'],'34600123123')
+    def test_manual_whatsapp_invalid_rejected(self):
+        b={'action':'create','serviceId':'physio','professionalId':'p5','start':self.start('11:00'),'customerName':'Bad','whatsappPhone':'123','whatsappConsent':True}
+        self.assertEqual(self.req('/api/voice/v1/prepare',b,conversation='wa-bad')[0],409)
     def test_prepare_overlap_rejected_and_auth(self):
         b={'action':'create','serviceId':'physio','professionalId':'p3','start':self.start('15:00'),'customerName':'Overlap'}
         self.assertEqual(self.req('/api/voice/v1/prepare',b)[0],409)
@@ -61,3 +69,12 @@ class VoiceTests(unittest.TestCase):
         os.environ['VOICE_PREVIEW_ENABLED']='false'
         try: self.assertEqual(self.req('/api/voice/v1/catalog',{},caller='not-a-phone')[0],403)
         finally: os.environ['VOICE_PREVIEW_ENABLED']='true'
+
+    def test_manual_whatsapp_target_preserves_preview_identity(self):
+        b={'action':'create','serviceId':'physio','professionalId':'p5','start':self.start('12:00'),'customerName':'Demo Whatsapp','whatsappPhone':'600123456','whatsappConsent':True}
+        status,x=self.req('/api/voice/v1/prepare',b,caller='',conversation='manual-wa'); self.assertEqual(status,200)
+        self.assertEqual(x['summary']['whatsappPhone'],'+34600123456')
+        status,y=self.req('/api/voice/v1/confirm',{'confirmationToken':x['confirmationToken']},caller='',conversation='manual-wa'); self.assertEqual(status,200)
+        self.assertTrue(y['booking']['phone'].startswith('demo:'))
+        c=conn(); row=c.execute('SELECT recipient_phone FROM notification_outbox WHERE booking_id=?',(y['booking']['id'],)).fetchone();c.close();self.assertEqual(row[0],'+34600123456')
+        self.assertEqual(self.req('/api/voice/v1/upcoming',{},caller='+34600123456',conversation='other-person')[1]['bookings'],[])

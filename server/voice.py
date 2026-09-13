@@ -20,6 +20,11 @@ def _norm_phone(v):
     if isinstance(v,str) and v.startswith('demo:'): return v
     d=''.join(x for x in str(v) if x.isdigit())
     return '34'+d if len(d)==9 and d[0] in '6789' else d
+def _whatsapp(v):
+    if not isinstance(v,str): raise ValueError('invalid whatsappPhone')
+    if re.fullmatch(r'\+[1-9]\d{7,14}',v): return v[1:]
+    if re.fullmatch(r'[6789]\d{8}',v): return '34'+v
+    raise ValueError('invalid whatsappPhone')
 def _auth(h):
     p=os.environ.get('VOICE_TOKEN_FILE',''); a=h.headers.get('Authorization','')
     if not p or not a.startswith('Bearer '): return False
@@ -38,7 +43,7 @@ def handle(h):
     try: b=h.body()
     except ValueError as e: h.error(400,str(e)); return True
     if u.endswith('/catalog'):
-        x=server.catalog(); n=server.now_local(); x.update({'timezone':'Europe/Madrid','now':n.isoformat(timespec='minutes'),'date':n.date().isoformat(),'mode':'voice'}); h.send_json(200,x); return True
+        x=server.catalog(); n=server.now_local(); x.update({'timezone':'Europe/Madrid','now':n.isoformat(timespec='minutes'),'date':n.date().isoformat(),'mode':'preview' if caller.startswith('demo:') else 'voice','callerPhoneAvailable':not caller.startswith('demo:'),'whatsappEnabled':bool(os.environ.get('NOTIFICATION_WEBHOOK_URL') and os.environ.get('NOTIFICATION_TOKEN_FILE'))}); h.send_json(200,x); return True
     if u.endswith('/availability'):
         sid=b.get('serviceId'); day=b.get('date'); pid=b.get('professionalId'); svc=next((x for x in server.SERVICES if x[0]==sid),None)
         try:
@@ -67,7 +72,12 @@ def handle(h):
             if action=='create':
                 server.validate_person(p); s=server.parse_start(p['start']); e=server.rules(p['serviceId'],p['professionalId'],s); sid, pid=p['serviceId'],p['professionalId']
                 if server.overlap(c,pid,s,e): raise ValueError('time slot unavailable')
+                if 'whatsappPhone' in p:
+                    p['whatsappPhone']=_whatsapp(p['whatsappPhone'])
+                    if p.get('whatsappConsent') is not True: raise ValueError('whatsappConsent must be true')
+                elif p.get('whatsappConsent') is True: raise ValueError('whatsappPhone required with consent')
             else:
+                if 'whatsappPhone' in p or 'whatsappConsent' in p: raise ValueError('WhatsApp recipient is only supported for create')
                 r=c.execute('SELECT * FROM bookings WHERE id=?',(p.get('bookingId'),)).fetchone()
                 if not r or _norm_phone(r['phone'])!=caller: raise ValueError('booking not found')
                 if r['status']!='confirmed': raise ValueError('booking is cancelled')
@@ -76,8 +86,9 @@ def handle(h):
                 if action=='reschedule' and server.overlap(c,pid,s,e,r['id']): raise ValueError('time slot unavailable')
             svc=next(x for x in server.SERVICES if x[0]==sid); pro=next(x for x in server.PROS if x[0]==pid); summary={'action':action,'service':svc[1],'professional':pro[1],'durationMinutes':svc[3],**({'start':p['start']} if 'start' in p else {}),**({'bookingId':p['bookingId']} if 'bookingId' in p else {})}
             if action!='create': summary['originalStart']=r['start']; summary['start']=server.iso(s) if action=='reschedule' else r['start']
+            if action=='create' and p.get('whatsappPhone'): summary['whatsappPhone']='+'+p['whatsappPhone']
         except (ValueError,KeyError,StopIteration,TypeError) as ex: c.close(); h.error(409,str(ex)); return True
-        payload=json.dumps(b,sort_keys=True,separators=(',',':')); token=secrets.token_urlsafe(32); op=secrets.token_hex(16); c.execute('INSERT INTO voice_operations VALUES(?,?,?,?,?,?,?,?,?)',(op,hashlib.sha256(token.encode()).hexdigest(),os.environ['ELEVENLABS_AGENT_ID'],conversation,caller,action,payload,datetime.now().timestamp()+300,None)); c.commit(); c.close()
+        payload=json.dumps(p,sort_keys=True,separators=(',',':')); token=secrets.token_urlsafe(32); op=secrets.token_hex(16); c.execute('INSERT INTO voice_operations VALUES(?,?,?,?,?,?,?,?,?)',(op,hashlib.sha256(token.encode()).hexdigest(),os.environ['ELEVENLABS_AGENT_ID'],conversation,caller,action,payload,datetime.now().timestamp()+300,None)); c.commit(); c.close()
         h.send_json(200,{'confirmationToken':token,'summary':summary,'expiresInSeconds':300}); return True
     if u.endswith('/confirm'):
         tok=b.get('confirmationToken'); c=_db(); c.execute('BEGIN IMMEDIATE'); op=c.execute('SELECT * FROM voice_operations WHERE token_hash=?',(hashlib.sha256(str(tok).encode()).hexdigest(),)).fetchone()
@@ -89,7 +100,8 @@ def handle(h):
         except (ValueError,KeyError) as e: c.rollback(); c.close(); h.error(409,str(e)); return True
         if action=='create':
             from . import notifications
-            result['whatsapp']=notifications.enqueue(c,op['id'],result['booking'])
+            target=dict(result['booking']); target['phone']=p.get('whatsappPhone') if p.get('whatsappPhone') else caller
+            result['whatsapp']=notifications.enqueue(c,op['id'],target)
         c.execute('UPDATE voice_operations SET consumed=? WHERE id=?',(json.dumps(result),op['id'])); c.commit(); c.close(); h.send_json(200,result); return True
     h.error(404,'not found'); return True
 def _apply(c,caller,action,p,opid):

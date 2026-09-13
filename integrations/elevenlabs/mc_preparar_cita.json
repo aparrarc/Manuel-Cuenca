@@ -76,6 +76,25 @@
           "enum": null,
           "dynamic_variable": "",
           "constant_value": ""
+        },
+        {
+          "id": "whatsappPhone",
+          "type": "string",
+          "description": "Solo create: móvil confirmado por el usuario para recibir WhatsApp, formato +34600111222. No inventarlo ni usar el número de Weedex como destinatario. Omitir si no lo proporciona.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "value_type": "llm_prompt",
+          "required": false,
+          "enum": null
+        },
+        {
+          "id": "whatsappConsent",
+          "type": "boolean",
+          "description": "Solo true cuando el usuario acepta la confirmación WhatsApp al móvil indicado; omitir si no hay whatsappPhone.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "value_type": "llm_prompt",
+          "required": false
         }
       ],
       "value_type": "llm_prompt"

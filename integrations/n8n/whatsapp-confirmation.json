@@ -1,0 +1,131 @@
+{
+  "id": "mcWhatsappConfirm20260913",
+  "name": "Manuel Cuenca — WhatsApp confirmation (DEMO)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "hook",
+      "name": "Confirmed booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "manuelcuenca-whatsapp-confirmation-v1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "manuelcuenca-whatsapp-confirmation-v1",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mcWhatsappIngress20260913",
+          "name": "Manuel Cuenca WhatsApp ingress"
+        }
+      }
+    },
+    {
+      "id": "validate",
+      "name": "Validate demo confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const b=$json.body; if(!b || b.type!=='booking_confirmation' || !/^[a-f0-9]{32}$/.test(b.eventId||'') || !/^\\+[1-9][0-9]{7,14}$/.test(b.recipientPhone||'') || !/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(b.date||'') || !/^\\d{2}:\\d{2}$/.test(b.time||'') || !b.customerName || b.customerName.length>120) throw new Error('Invalid confirmation'); return [{json:{eventId:b.eventId,payload:{messaging_product:'whatsapp',to:b.recipientPhone.slice(1),type:'template',template:{name:'confirmacion_reserva_pagina_weedex',language:{code:'es'},components:[{type:'body',parameters:[b.customerName,'Manuel Cuenca — DEMO',b.date,b.time,'Cita de prueba; no es una reserva clínica'].map(text=>({type:'text',text}))}]}}}}];"
+      }
+    },
+    {
+      "id": "meta",
+      "name": "Send approved Weedex template",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/1149142188289476/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "TT3XRZGlxpZZwMp3",
+          "name": "Weedex WhatsApp Oficial"
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "respond",
+      "name": "Return Meta acceptance",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { accepted: !!$json.messages?.[0]?.id, messageId: $json.messages?.[0]?.id || null } }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Confirmed booking": {
+      "main": [
+        [
+          {
+            "node": "Validate demo confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate demo confirmation": {
+      "main": [
+        [
+          {
+            "node": "Send approved Weedex template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send approved Weedex template": {
+      "main": [
+        [
+          {
+            "node": "Return Meta acceptance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "executionTimeout": 30
+  }
+}

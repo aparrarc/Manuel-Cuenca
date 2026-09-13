@@ -29,7 +29,7 @@ def enqueue(c,event_key,booking):
         when=datetime.fromisoformat(booking['start']).astimezone(ZoneInfo('Europe/Madrid')).strftime('%d/%m/%Y a las %H:%M')
     except (KeyError,ValueError,TypeError): return {'status':'skipped','reason':'invalid_date'}
     text=f"Weedex · Demo Manuel Cuenca\nTu cita de prueba está confirmada para el {when} (hora de Madrid). Este mensaje forma parte de una demostración; no es una cita clínica real."
-    payload=json.dumps({'eventId':event_key,'type':'booking_confirmation','recipientPhone':recipient,'bookingId':booking.get('id'),'text':text},ensure_ascii=False)
+    payload=json.dumps({'eventId':event_key,'type':'booking_confirmation','recipientPhone':recipient,'bookingId':booking.get('id'),'customerName':booking.get('customerName','Cliente'),'date':datetime.fromisoformat(booking['start']).astimezone(ZoneInfo('Europe/Madrid')).strftime('%d/%m/%Y'),'time':datetime.fromisoformat(booking['start']).astimezone(ZoneInfo('Europe/Madrid')).strftime('%H:%M'),'text':text},ensure_ascii=False)
     try: c.execute("INSERT INTO notification_outbox(event_key,event_id,kind,recipient_phone,booking_id,payload) VALUES(?,?,?,?,?,?)",(event_key,event_key,'booking_confirmation',recipient,booking.get('id',''),payload)); return {'status':'queued','eventId':event_key}
     except sqlite3.IntegrityError: return {'status':'already_queued','eventId':event_key}
 
@@ -46,9 +46,11 @@ def process_pending(c,limit=20):
         c.execute("UPDATE notification_outbox SET status='sending',attempted_at=? WHERE event_key=? AND status='pending'",(datetime.now(timezone.utc).isoformat(),row['event_key'])); c.commit()
         try:
             req=urllib.request.Request(url,data=row['payload'].encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+token},method='POST')
-            with urllib.request.build_opener(NoRedirect).open(req,timeout=8) as response: code=response.status
+            with urllib.request.build_opener(NoRedirect).open(req,timeout=25) as response:
+                code=response.status; receipt=json.load(response)
+            if not receipt.get('accepted') or not receipt.get('messageId'): raise ValueError('unverified acceptance')
             c.execute("UPDATE notification_outbox SET status=?,finished_at=? WHERE event_key=?",('accepted' if 200<=code<300 else 'failed',datetime.now(timezone.utc).isoformat(),row['event_key'])); c.commit(); done+=1
-        except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError, OSError) as e:
+        except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError, OSError, ValueError) as e:
             # Network ambiguity is never automatically retried; explicit HTTP failure is failed.
             status='failed' if isinstance(e,urllib.error.HTTPError) else 'unknown'
             c.execute("UPDATE notification_outbox SET status=?,finished_at=?,error=? WHERE event_key=?",(status,datetime.now(timezone.utc).isoformat(),type(e).__name__,row['event_key'])); c.commit(); done+=1
