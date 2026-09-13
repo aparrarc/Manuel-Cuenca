@@ -1,38 +1,48 @@
-# Manuel Cuenca Fisioterapia — demo Weedex
+# Manuel Cuenca — demo de reservas Weedex
 
-Web nueva e independiente para Manuel Cuenca. Se reutiliza la estructura React/Vite del trabajo previo de Forja, sin datos, APIs, credenciales, despliegues ni historial Git de P de Paula.
+Web y sistema de reservas independientes. Sin conexión a P de Paula ni Archivex.
+
+## Alcance
+
+Seis calendarios: Manuel Cuenca, Fernando López, Álvaro Hurtado, Víctor González, Alex Velasco y José David López (entrenador). Horarios, duraciones y asignaciones de la demo no constituyen disponibilidad oficial del centro. Nutrición y Psicología no admiten reservas sin profesionales asignados.
+
+Las citas se persisten en SQLite y se comparten entre reserva web y recepción. Utilizar solo identidades y teléfonos ficticios. No se envían mensajes ni se confirma atención clínica real. El asistente ElevenLabs se conectará en otra fase.
 
 ## Desarrollo
 
 ```sh
 npm ci
-npm run dev -- --host 127.0.0.1
 npm run build
+python -m server.app
 ```
 
-## Alcance
+Frontend servido por el backend en puerto 8080. `DATABASE_PATH` selecciona el archivo SQLite; `STATIC_DIR` la carpeta de compilación. Los secretos no se guardan en Git: `ADMIN_PASSWORD_FILE` y `WEBHOOK_TOKEN_FILE` son rutas a archivos protegidos. Si faltan, los accesos correspondientes quedan cerrados.
 
-Landing personalizada y recorrido de reserva simulado. No crea citas reales ni envía notificaciones. Cinco áreas propuestas: fisioterapia/rehabilitación, osteopatía, nutrición, psicología y entrenamiento (pendiente de confirmar).
-
-La agenda transaccional y el asistente telefónico se construirán después. Se reutilizará el patrón de consulta, alta, modificación y cancelación de citas, nunca las conexiones de otro cliente. Archivex permanece como sistema clínico principal; no hay integración confirmada.
-
-Imágenes y logo proceden de la web pública del cliente. Esta demo no debe indexarse como web oficial.
-
-## Contenedor
-
-Construir `dist` localmente; el contenedor sirve exclusivamente estáticos en el puerto interno 8080. Sin bases de datos, credenciales ni volúmenes de otros clientes.
+## Validación
 
 ```sh
-docker build -t manuel-cuenca-web:demo .
+npm run lint
+npm test
+npm run build
+python -m unittest -v server.test_server
 ```
 
-## Estado de entrega — 13/09/2026
+## Despliegue
 
-- Fuente independiente en `/home/casa/projects/manuel-cuenca-web`; sin historial del proyecto base.
-- Validación: lint, 3 tests y build correctos.
-- KVM4: servicio Swarm `manuelcuenca-web`, imagen `manuelcuenca-web:demo-20260913`, release `/opt/manuelcuenca-web/releases/demo-20260913`.
-- Una réplica, límites 0,5 CPU y 256 MiB, sin puertos publicados y Traefik desactivado para este servicio.
-- Verificados HTTP 200 en `/booking` y JS, healthz `ok`, cabecera noindex.
-- Acceso público activo: https://manuelcuenca.weedex.es/ . DNS creado por el usuario hacia KVM4. Ruta aislada en `/etc/dokploy/traefik/dynamic/manuelcuenca-web.yml`, sin modificar rutas existentes. HTTPS válido y HTTP → HTTPS 308; portada y `/booking` devuelven 200 (13/09/2026).
-- GitHub: repositorio https://github.com/aparrarc/Manuel-Cuenca conectado mediante clave de despliegue SSH exclusiva; rama principal `main`.
-- Navegador abre la portada pública con título correcto; captura bloqueada por timeout del navegador. Revisión visual/interactiva completa todavía pendiente.
+KVM4, servicio dedicado `manuelcuenca-web`, una réplica, 0,5 CPU, 256 MiB, puerto interno 8080 en `dokploy-network`. Volumen persistente para la base de datos, sin compartir información con otros clientes. Mantener una sola réplica para esta implementación SQLite.
+
+Ruta Traefik aislada: `/etc/dokploy/traefik/dynamic/manuelcuenca-web.yml`. No sustituir configuraciones compartidas. HTTPS y noindex activos en https://manuelcuenca.weedex.es/ . Panel: `/admin`.
+
+Repositorio: https://github.com/aparrarc/Manuel-Cuenca — rama `main`, clave SSH de despliegue exclusiva.
+
+## Pendiente de producción
+
+Validar horarios, servicios y profesionales con el cliente; integrar identidad del llamante y confirmación verbal en ElevenLabs; definir notificaciones y copias de seguridad con restauración; completar autenticación operativa y revisión de datos antes de utilizar pacientes reales. Esta entrega no sustituye historia clínica, facturación ni consentimientos clínicos.
+
+## Evidencia de verificación (13/09/2026)
+
+- 11 pruebas HTTP/SQLite: seis agendas, compatibilidad, concurrencia, solapamientos, reintentos, cambio/cancelación, liberación, autorización, horarios y respuestas inválidas.
+- 2 pruebas de visualización horaria Madrid y cambio de hora.
+- Lint y compilación del frontend correctos.
+- Navegador local: alta desde web, cambio a otro profesional, recuperación tras recarga, seis columnas de recepción, cancelación administrativa y lectura de la cancelación en la web. Móvil 390 px sin desbordamiento; sin errores JS.
+- Contraseña del panel pendiente de provisionar por el operador desde terminal interactivo KVM4; ver `docs/BOOKING_API.md`. Los secretos no se entregan por chat.
